@@ -42,6 +42,8 @@ func (s *store) Append(p []byte) (n uint64, pos uint64, err error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	pos = s.size
+	// Write the length of the record sot that, when we read the record,
+	// we know how many bytes to read.
 	if err := binary.Write(s.buf, enc, uint64(len(p))); err != nil {
 		return 0, 0, err
 	}
@@ -64,6 +66,7 @@ func (s *store) Read(pos uint64) ([]byte, error) {
 		return nil, err
 	}
 	size := make([]byte, lenWidth)
+	// Find out how many byte to read.
 	if _, err := s.File.ReadAt(size, int64(pos)); err != nil {
 		return nil, err
 	}
