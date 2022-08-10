@@ -37,12 +37,12 @@ func newStore(f *os.File) (*store, error) {
 
 // Append writes p to the buffered writer.
 // It returns the number of bytes written, and the position where
-// the store holds teh record in its file.
+// the store holds the record in its file.
 func (s *store) Append(p []byte) (n uint64, pos uint64, err error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	pos = s.size
-	// Write the length of the record sot that, when we read the record,
+	// Write the length of the record so that, when we read the record,
 	// we know how many bytes to read.
 	if err := binary.Write(s.buf, enc, uint64(len(p))); err != nil {
 		return 0, 0, err
