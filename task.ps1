@@ -11,5 +11,5 @@ switch ($stage)
 {
     'build' { go build -o $exec -v ./cmd/server/main.go }
     'run' { "$exec" | Invoke-Expression }
-    'protoc' { protoc api/v1/*.proto --go_out=. --go_opt=paths=source-relative --proto_path=. }
+    'protoc' { protoc api/v1/*.proto --go_out=. --go_opt=paths=source_relative --proto_path=. }
 }
