@@ -35,21 +35,24 @@ func newHttpServer() *HttpServer {
 
 // handleProduce creates a record.
 // Test data:
-// {
-//    "record": {
-//        "value": "TGV0J3MgR28gIzEK"
-//    }
-// },
-// {
-//    "record": {
-//        "value": "TGV0J3MgR28gIzIK"
-//    }
-// },
-// {
-//    "record": {
-//        "value": "TGV0J3MgR28gIzMK"
-//    }
-// }
+//
+//	{
+//	   "record": {
+//	       "value": "TGV0J3MgR28gIzEK"
+//	   }
+//	},
+//
+//	{
+//	   "record": {
+//	       "value": "TGV0J3MgR28gIzIK"
+//	   }
+//	},
+//
+//	{
+//	   "record": {
+//	       "value": "TGV0J3MgR28gIzMK"
+//	   }
+//	}
 func (s *HttpServer) handleProduce(w http.ResponseWriter, r *http.Request) {
 	var req ProduceRequest
 	err := json.NewDecoder(r.Body).Decode(&req)
@@ -72,6 +75,7 @@ func (s *HttpServer) handleProduce(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// handleConsume handler calls Read to get the record stored inteh log.
 func (s *HttpServer) handleConsume(w http.ResponseWriter, r *http.Request) {
 	err := r.ParseForm()
 	if err != nil {
@@ -105,18 +109,22 @@ func (s *HttpServer) handleConsume(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// ProduceRequest contains the record to be appended to the log
 type ProduceRequest struct {
 	Record Record `json:"record"`
 }
 
+// ProduceResponse tells the client what offset the log stored the records under.
 type ProduceResponse struct {
 	Offset uint64 `json:"offset"`
 }
 
+// ConsumeRequest specifies which records the caller of API wants to read.
 type ConsumeRequest struct {
 	Offset uint64 `json:"offset" schema:"offset"`
 }
 
+// ConsumeResponse send back the records to the caller.
 type ConsumeResponse struct {
 	Record Record `json:"record"`
 }
