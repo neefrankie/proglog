@@ -13,7 +13,7 @@ func TestIndex(t *testing.T) {
 	defer os.Remove(f.Name())
 
 	c := Config{
-		Segment: Segment{
+		Segment: SegmentConfig{
 			MaxIndexBytes: 1024,
 		},
 	}
