@@ -13,6 +13,7 @@ var (
 
 func TestStoreAppendRead(t *testing.T) {
 	f, err := os.CreateTemp("", "store_append_read_test")
+	t.Logf("temp file %s", f.Name())
 	require.NoError(t, err)
 	defer func(name string) {
 		err := os.Remove(name)
@@ -38,6 +39,7 @@ func testAppend(t *testing.T, s *store) {
 
 	for i := uint64(1); i < 4; i++ {
 		n, pos, err := s.Append(write)
+		t.Logf("bytes written %d, position %d", n, pos)
 		require.NoError(t, err)
 		require.Equal(t, pos+n, width*i)
 	}
@@ -82,13 +84,19 @@ func TestStoreClose(t *testing.T) {
 	_, _, err = s.Append(write)
 	require.NoError(t, err)
 
+	// At this point the data is not flushed to file yet.
 	f, beforeSize, err := openFile(f.Name())
+	t.Logf("size before close %d", beforeSize)
 	require.NoError(t, err)
 
+	// Flush data.
 	err = s.Close()
 	require.NoError(t, err)
 
+	// Now when you open the file again, its size is
+	// no longer zero.
 	_, afterSize, err := openFile(f.Name())
+	t.Logf("size after close %d", afterSize)
 	require.NoError(t, err)
 	require.True(t, afterSize > beforeSize)
 }

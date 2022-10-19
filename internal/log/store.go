@@ -8,13 +8,19 @@ import (
 )
 
 var (
+	// enc defines the encoding that we persist record sizes
+	// and index entries in.
 	enc = binary.BigEndian
 )
 
 const (
+	// lenWidth defines the number of bytes used to store
+	// the record's length.
 	lenWidth = 8
 )
 
+// store is a simple wrapper around a file with two APIs to
+// append and read bytes to and from the file.
 type store struct {
 	*os.File
 	mu   sync.Mutex
@@ -22,7 +28,11 @@ type store struct {
 	size uint64
 }
 
+// newStore creates a store for the given file.
 func newStore(f *os.File) (*store, error) {
+	// Call os.Stat to get the file's current size, in case
+	// we're re-creating the store from a file that has
+	// existing data, which would happen if our service had restarted.
 	fi, err := os.Stat(f.Name())
 	if err != nil {
 		return nil, err
@@ -38,6 +48,9 @@ func newStore(f *os.File) (*store, error) {
 // Append writes p to the buffered writer.
 // It returns the number of bytes written, and the position where
 // the store holds the record in its file.
+// Returns the number of bytes written, and the position where
+// the store holds the record in its file. The segment will use this
+// position when it creates an associated index entry for this record.
 func (s *store) Append(p []byte) (n uint64, pos uint64, err error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -65,11 +78,13 @@ func (s *store) Read(pos uint64) ([]byte, error) {
 	if err := s.buf.Flush(); err != nil {
 		return nil, err
 	}
+	// Get the length of the record
 	size := make([]byte, lenWidth)
 	// Find out how many byte to read.
 	if _, err := s.File.ReadAt(size, int64(pos)); err != nil {
 		return nil, err
 	}
+	// Unit64 converts bytes to a number, which is encoded using the specified encoding.
 	b := make([]byte, enc.Uint64(size))
 	if _, err := s.File.ReadAt(b, int64(pos+lenWidth)); err != nil {
 		return nil, err
@@ -77,6 +92,8 @@ func (s *store) Read(pos uint64) ([]byte, error) {
 	return b, nil
 }
 
+// ReadAt reads len(p) bytes into p beginning at the off offset
+// in the store's file. It implements io.ReaderAt.
 func (s *store) ReadAt(p []byte, off int64) (int, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
