@@ -1,7 +1,7 @@
 package log
 
 import (
-	log_v1 "com.github/neefrankie/proglog/api/v1"
+	api "com.github/neefrankie/proglog/api/v1"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/protobuf/proto"
 	"io"
@@ -32,7 +32,7 @@ func TestLog(t *testing.T) {
 }
 
 func testAppendRead(t *testing.T, log *Log) {
-	append := &log_v1.Record{
+	append := &api.Record{
 		Value: []byte("hello world"),
 	}
 	off, err := log.Append(append)
@@ -47,16 +47,17 @@ func testAppendRead(t *testing.T, log *Log) {
 func testOutOfRangeErr(t *testing.T, log *Log) {
 	read, err := log.Read(1)
 	require.Nil(t, read)
-	require.Error(t, err)
+	apiErr := err.(api.ErrOffsetOutOfRange)
+	require.Equal(t, uint64(1), apiErr.Offset)
 }
 
 func testInitExisting(t *testing.T, o *Log) {
-	append := &log_v1.Record{
+	a := &api.Record{
 		Value: []byte("hello world"),
 	}
 
 	for i := 0; i < 3; i++ {
-		_, err := o.Append(append)
+		_, err := o.Append(a)
 		require.NoError(t, err)
 	}
 
@@ -80,7 +81,7 @@ func testInitExisting(t *testing.T, o *Log) {
 }
 
 func testReader(t *testing.T, log *Log) {
-	append := &log_v1.Record{
+	append := &api.Record{
 		Value: []byte("hello world"),
 	}
 
@@ -92,14 +93,14 @@ func testReader(t *testing.T, log *Log) {
 	b, err := io.ReadAll(reader)
 	require.NoError(t, err)
 
-	read := &log_v1.Record{}
+	read := &api.Record{}
 	err = proto.Unmarshal(b[lenWidth:], read)
 	require.NoError(t, err)
 	require.Equal(t, append.Value, read.Value)
 }
 
 func testTruncate(t *testing.T, log *Log) {
-	append := &log_v1.Record{
+	append := &api.Record{
 		Value: []byte("hello world"),
 	}
 	for i := 0; i < 3; i++ {
