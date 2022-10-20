@@ -126,8 +126,11 @@ func setupTest(t *testing.T, fn func(config *Config)) (
 	l, err := net.Listen("tcp", "127.0.0.1:0")
 	require.NoError(t, err)
 
+	// Client
 	clientTLSConfig, err := config.SetupTLSConfig(config.TLSConfig{
-		CAFile: config.CAFile,
+		CertFile: config.ClientCertFile,
+		KeyFile:  config.ClientKeyFile,
+		CAFile:   config.CAFile,
 	})
 	require.NoError(t, err)
 
@@ -135,11 +138,15 @@ func setupTest(t *testing.T, fn func(config *Config)) (
 	cc, err := grpc.Dial(l.Addr().String(), grpc.WithTransportCredentials(clientCreds))
 	require.NoError(t, err)
 
+	client = api.NewLogClient(cc)
+
+	// Server
 	serverTLSConfig, err := config.SetupTLSConfig(config.TLSConfig{
 		CertFile:      config.ServerCertFile,
 		KeyFile:       config.ServerKeyFile,
 		CAFile:        config.CAFile,
 		ServerAddress: l.Addr().String(),
+		Server:        true,
 	})
 	require.NoError(t, err)
 	serverCreds := credentials.NewTLS(serverTLSConfig)
@@ -161,8 +168,6 @@ func setupTest(t *testing.T, fn func(config *Config)) (
 	go func() {
 		server.Serve(l)
 	}()
-
-	client = api.NewLogClient(cc)
 
 	return client, cfg, func() {
 		server.Stop()
