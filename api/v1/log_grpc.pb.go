@@ -22,7 +22,7 @@ const _ = grpc.SupportPackageIsVersion7
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type LogClient interface {
-	Product(ctx context.Context, in *ProduceRequest, opts ...grpc.CallOption) (*ProduceResponse, error)
+	Produce(ctx context.Context, in *ProduceRequest, opts ...grpc.CallOption) (*ProduceResponse, error)
 	Consume(ctx context.Context, in *ConsumeRequest, opts ...grpc.CallOption) (*ConsumeResponse, error)
 	ConsumeStream(ctx context.Context, in *ConsumeRequest, opts ...grpc.CallOption) (Log_ConsumeStreamClient, error)
 	ProduceStream(ctx context.Context, opts ...grpc.CallOption) (Log_ProduceStreamClient, error)
@@ -36,9 +36,9 @@ func NewLogClient(cc grpc.ClientConnInterface) LogClient {
 	return &logClient{cc}
 }
 
-func (c *logClient) Product(ctx context.Context, in *ProduceRequest, opts ...grpc.CallOption) (*ProduceResponse, error) {
+func (c *logClient) Produce(ctx context.Context, in *ProduceRequest, opts ...grpc.CallOption) (*ProduceResponse, error) {
 	out := new(ProduceResponse)
-	err := c.cc.Invoke(ctx, "/log.v1.Log/Product", in, out, opts...)
+	err := c.cc.Invoke(ctx, "/log.v1.Log/Produce", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -96,7 +96,7 @@ func (c *logClient) ProduceStream(ctx context.Context, opts ...grpc.CallOption) 
 }
 
 type Log_ProduceStreamClient interface {
-	Send(*ProduceResponse) error
+	Send(*ProduceRequest) error
 	Recv() (*ProduceResponse, error)
 	grpc.ClientStream
 }
@@ -105,7 +105,7 @@ type logProduceStreamClient struct {
 	grpc.ClientStream
 }
 
-func (x *logProduceStreamClient) Send(m *ProduceResponse) error {
+func (x *logProduceStreamClient) Send(m *ProduceRequest) error {
 	return x.ClientStream.SendMsg(m)
 }
 
@@ -121,7 +121,7 @@ func (x *logProduceStreamClient) Recv() (*ProduceResponse, error) {
 // All implementations must embed UnimplementedLogServer
 // for forward compatibility
 type LogServer interface {
-	Product(context.Context, *ProduceRequest) (*ProduceResponse, error)
+	Produce(context.Context, *ProduceRequest) (*ProduceResponse, error)
 	Consume(context.Context, *ConsumeRequest) (*ConsumeResponse, error)
 	ConsumeStream(*ConsumeRequest, Log_ConsumeStreamServer) error
 	ProduceStream(Log_ProduceStreamServer) error
@@ -132,8 +132,8 @@ type LogServer interface {
 type UnimplementedLogServer struct {
 }
 
-func (UnimplementedLogServer) Product(context.Context, *ProduceRequest) (*ProduceResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method Product not implemented")
+func (UnimplementedLogServer) Produce(context.Context, *ProduceRequest) (*ProduceResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method Produce not implemented")
 }
 func (UnimplementedLogServer) Consume(context.Context, *ConsumeRequest) (*ConsumeResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Consume not implemented")
@@ -157,20 +157,20 @@ func RegisterLogServer(s grpc.ServiceRegistrar, srv LogServer) {
 	s.RegisterService(&Log_ServiceDesc, srv)
 }
 
-func _Log_Product_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+func _Log_Produce_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(ProduceRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(LogServer).Product(ctx, in)
+		return srv.(LogServer).Produce(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/log.v1.Log/Product",
+		FullMethod: "/log.v1.Log/Produce",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(LogServer).Product(ctx, req.(*ProduceRequest))
+		return srv.(LogServer).Produce(ctx, req.(*ProduceRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -220,7 +220,7 @@ func _Log_ProduceStream_Handler(srv interface{}, stream grpc.ServerStream) error
 
 type Log_ProduceStreamServer interface {
 	Send(*ProduceResponse) error
-	Recv() (*ProduceResponse, error)
+	Recv() (*ProduceRequest, error)
 	grpc.ServerStream
 }
 
@@ -232,8 +232,8 @@ func (x *logProduceStreamServer) Send(m *ProduceResponse) error {
 	return x.ServerStream.SendMsg(m)
 }
 
-func (x *logProduceStreamServer) Recv() (*ProduceResponse, error) {
-	m := new(ProduceResponse)
+func (x *logProduceStreamServer) Recv() (*ProduceRequest, error) {
+	m := new(ProduceRequest)
 	if err := x.ServerStream.RecvMsg(m); err != nil {
 		return nil, err
 	}
@@ -248,8 +248,8 @@ var Log_ServiceDesc = grpc.ServiceDesc{
 	HandlerType: (*LogServer)(nil),
 	Methods: []grpc.MethodDesc{
 		{
-			MethodName: "Product",
-			Handler:    _Log_Product_Handler,
+			MethodName: "Produce",
+			Handler:    _Log_Produce_Handler,
 		},
 		{
 			MethodName: "Consume",
