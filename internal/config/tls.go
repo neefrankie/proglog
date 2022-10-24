@@ -7,6 +7,8 @@ import (
 	"os"
 )
 
+// TLSConfig defines the parameters that SetupTLConfig uses to determine
+// what type of *tls.Config to return.
 type TLSConfig struct {
 	CertFile      string
 	KeyFile       string
@@ -15,6 +17,7 @@ type TLSConfig struct {
 	Server        bool
 }
 
+// SetupTLSConfig gets each type of *tls.Config with one function call.
 func SetupTLSConfig(cfg TLSConfig) (*tls.Config, error) {
 	var err error
 	tlsConfig := &tls.Config{}
