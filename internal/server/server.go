@@ -3,6 +3,8 @@ package server
 import (
 	api "com.github/neefrankie/proglog/api/v1"
 	"context"
+	grpc_middleware "github.com/grpc-ecosystem/go-grpc-middleware"
+	grpc_auth "github.com/grpc-ecosystem/go-grpc-middleware/auth"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/credentials"
@@ -32,6 +34,17 @@ const (
 
 func NewGRPCServer(config *Config, opts ...grpc.ServerOption) (*grpc.Server, error) {
 
+	// Hook up authenticate interceptor to gPRC server so that our server identifies
+	// the subject of each RPC to kick off the authorization process.
+	opts = append(
+		opts,
+		grpc.StreamInterceptor(grpc_middleware.ChainStreamServer(
+			grpc_auth.StreamServerInterceptor(authenticate),
+		)),
+		grpc.UnaryInterceptor(grpc_middleware.ChainUnaryServer(
+			grpc_auth.UnaryServerInterceptor(authenticate),
+		)),
+	)
 	gsrv := grpc.NewServer(opts...)
 
 	srv, err := newGrpcServer(config)
@@ -57,7 +70,11 @@ func newGrpcServer(config *Config) (*grpcServer, error) {
 }
 
 func (s *grpcServer) Produce(ctx context.Context, req *api.ProduceRequest) (*api.ProduceResponse, error) {
-	if err := s.Authorizer.Authorize(subject(ctx), objectWildcard, produceAction); err != nil {
+	if err := s.Authorizer.Authorize(
+		subject(ctx),
+		objectWildcard,
+		produceAction,
+	); err != nil {
 		return nil, err
 	}
 
@@ -70,7 +87,11 @@ func (s *grpcServer) Produce(ctx context.Context, req *api.ProduceRequest) (*api
 }
 
 func (s *grpcServer) Consume(ctx context.Context, req *api.ConsumeRequest) (*api.ConsumeResponse, error) {
-	if err := s.Authorizer.Authorize(subject(ctx), objectWildcard, consumeAction); err != nil {
+	if err := s.Authorizer.Authorize(
+		subject(ctx),
+		objectWildcard,
+		consumeAction,
+	); err != nil {
 		return nil, err
 	}
 
@@ -125,6 +146,8 @@ func (s *grpcServer) ConsumeStream(req *api.ConsumeRequest, stream api.Log_Consu
 
 type subjectContextKey struct{}
 
+// authenticate is an interceptor that reads the subject out of the
+// client's cert and writes it ot the RPC's context.
 func authenticate(ctx context.Context) (context.Context, error) {
 	p, ok := peer.FromContext(ctx)
 	if !ok {
@@ -135,11 +158,14 @@ func authenticate(ctx context.Context) (context.Context, error) {
 	}
 	tlsInfo := p.AuthInfo.(credentials.TLSInfo)
 	subject := tlsInfo.State.VerifiedChains[0][0].Subject.CommonName
+
 	ctx = context.WithValue(ctx, subjectContextKey{}, subject)
 
 	return ctx, nil
 }
 
+// subject returns the client's cert's subject so we can identify a client
+// and check their access.
 func subject(ctx context.Context) string {
 	return ctx.Value(subjectContextKey{}).(string)
 }

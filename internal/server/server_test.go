@@ -2,6 +2,7 @@ package server
 
 import (
 	api "com.github/neefrankie/proglog/api/v1"
+	"com.github/neefrankie/proglog/internal/auth"
 	"com.github/neefrankie/proglog/internal/config"
 	"com.github/neefrankie/proglog/internal/log"
 	"context"
@@ -161,6 +162,10 @@ func setupTest(t *testing.T, fn func(config *Config)) (
 
 	// Client
 	newClient := func(crtPath, keyPath string) (*grpc.ClientConn, api.LogClient, []grpc.DialOption) {
+		// The client uses ethe CA to verify the server's certificate.
+		// If the server's certificate came from a different authority,
+		// the client wouldn't trust the serer and wouldn't make a
+		// connection.
 		tlsConfig, err := config.SetupTLSConfig(config.TLSConfig{
 			CertFile: crtPath,
 			KeyFile:  keyPath,
@@ -189,6 +194,8 @@ func setupTest(t *testing.T, fn func(config *Config)) (
 		config.NobodyClientKeyFile)
 
 	// Server
+	// Parse the server's cert and key, which we then use to configure
+	// the server's TLS credentials.
 	serverTLSConfig, err := config.SetupTLSConfig(config.TLSConfig{
 		CertFile:      config.ServerCertFile,
 		KeyFile:       config.ServerKeyFile,
@@ -204,13 +211,17 @@ func setupTest(t *testing.T, fn func(config *Config)) (
 
 	clog, err := log.NewLog(dir, log.Config{})
 	require.NoError(t, err)
+
+	authorizer := auth.New(config.ACLModelFile, config.ACLPolicyFile)
 	cfg = &Config{
-		CommitLog: clog,
+		CommitLog:  clog,
+		Authorizer: authorizer,
 	}
 	if fn != nil {
 		fn(cfg)
 	}
 
+	// Pass the tls credentials tas a gRPC server option.
 	server, err := NewGRPCServer(cfg, grpc.Creds(serverCreds))
 	require.NoError(t, err)
 	go func() {
