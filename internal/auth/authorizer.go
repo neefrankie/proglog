@@ -15,7 +15,7 @@ type Authorizer struct {
 // New creates a new instance of Authorizer.
 // The model and policy arguments are paths to the files where you defined the model.
 func New(model, policy string) *Authorizer {
-	enforcer, err := casbin.NewEnforcer(model, policy, true)
+	enforcer, err := casbin.NewEnforcer(model, policy)
 	if err != nil {
 		panic(err)
 	}
