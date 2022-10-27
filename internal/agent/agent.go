@@ -19,6 +19,28 @@ import (
 	"time"
 )
 
+type Config struct {
+	ServerTLSConfig *tls.Config
+	PeerTLSConfig   *tls.Config
+	DataDir         string
+	BindAddr        string
+	RPCPort         int
+	NodeName        string
+	StartJoinAddrs  []string
+	ACLModelFile    string
+	ACLPolicyFile   string
+	Bootstrap       bool
+}
+
+func (c Config) RPCAddr() (string, error) {
+	host, _, err := net.SplitHostPort(c.BindAddr)
+	if err != nil {
+		return "", err
+	}
+
+	return fmt.Sprintf("%s:%d", host, c.RPCPort), nil
+}
+
 // Agent runs on every service instance, setting up and connecting all
 // the different components.
 type Agent struct {
@@ -112,8 +134,9 @@ func (a *Agent) setupLog() error {
 func (a *Agent) setupServer() error {
 	authorizer := auth.New(a.Config.ACLModelFile, a.Config.ACLPolicyFile)
 	serverConfig := &server.Config{
-		CommitLog:  a.log,
-		Authorizer: authorizer,
+		CommitLog:   a.log,
+		Authorizer:  authorizer,
+		GetServerer: a.log,
 	}
 	var opts []grpc.ServerOption
 	if a.Config.ServerTLSConfig != nil {
@@ -186,26 +209,4 @@ func (a *Agent) Shutdown() error {
 	}
 
 	return nil
-}
-
-type Config struct {
-	ServerTLSConfig *tls.Config
-	PeerTLSConfig   *tls.Config
-	DataDir         string
-	BindAddr        string
-	RPCPort         int
-	NodeName        string
-	StartJoinAddrs  []string
-	ACLModelFile    string
-	ACLPolicyFile   string
-	Bootstrap       bool
-}
-
-func (c Config) RPCAddr() (string, error) {
-	host, _, err := net.SplitHostPort(c.BindAddr)
-	if err != nil {
-		return "", err
-	}
-
-	return fmt.Sprintf("%s:%d", host, c.RPCPort), nil
 }
