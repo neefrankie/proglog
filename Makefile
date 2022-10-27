@@ -1,15 +1,15 @@
 app_name := proglog
 
-src_dir := $(current_dir)
-out_dir := $(current_dir)/out
-
-default_exec := $(out_dir)/$(app_name)
-
 CONFIG_PATH=$(HOME)/.proglog
+
+TAG ?= 0.0.1
 
 .PHONY: build
 build :
-	go build -o $(default_exec) -tags production -v $(src_dir)
+	CGO_ENABLED=0 go build -o ./output/proglog -v ./cmd/proglog
+
+build-linux :
+	GOOS=linux CGO_ENABLED=0 go build -o ./output/linux/proglog -v ./cmd/proglog
 
 .PHONY: run
 run :
@@ -41,3 +41,6 @@ gencert :
 acl :
 	cp test/model.conf $(CONFIG_PATH)/model.conf
 	cp test/policy.csv $(CONFIG_PATH)/policy.csv
+
+build-docker:
+	docker build -t github.com/neefrankie/proglog:$(TAG) .
