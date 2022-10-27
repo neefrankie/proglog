@@ -4,8 +4,6 @@ go 1.19
 
 require (
 	github.com/casbin/casbin/v2 v2.56.0
-	github.com/gorilla/mux v1.8.0
-	github.com/gorilla/schema v1.2.0
 	github.com/grpc-ecosystem/go-grpc-middleware v1.3.0
 	github.com/hashicorp/raft v1.3.11
 	github.com/hashicorp/raft-boltdb/v2 v2.2.2
